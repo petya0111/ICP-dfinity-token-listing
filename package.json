@@ -1,10 +1,13 @@
 {
-  "name": "dfinity_project",
+  "name": "dfinity_nft_token_project",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "dfx start --background",
+    "clean-start": "dfx start --background --clean",
+    "deploy": "dfx deploy",
+    "stop": "dfx stop"
   },
   "dependencies": {
     "@dfinity/agent": "^0.15.6",

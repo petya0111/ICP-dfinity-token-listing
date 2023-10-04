@@ -1,0 +1,30 @@
+type ListedToken = record {
+  id : text;
+  tokenId : text;
+  body : text;
+  createdAt : nat64;
+  pinataURL : text;
+  updatedAt : opt nat64;
+  tokenName : text;
+  currentlyListed : bool;
+};
+type ListedTokenPayload = record {
+  tokenId : text;
+  body : text;
+  pinataURL : text;
+  tokenName : text;
+};
+type _AzleResult = variant { Ok : ListedToken; Err : text };
+type _AzleResult_1 = variant { Ok : vec ListedToken; Err : text };
+type _AzleResult_2 = variant { Ok : text; Err : text };
+type _AzleResult_3 = variant { Ok : bool; Err : text };
+service : () -> {
+  addListedToken : (ListedTokenPayload) -> (_AzleResult);
+  deleteListedToken : (text) -> (_AzleResult);
+  getListedToken : (text) -> (_AzleResult) query;
+  getListedTokens : () -> (_AzleResult_1) query;
+  getNFTPinataIPFSurl : (text) -> (_AzleResult_2) query;
+  getStatusListedTokenCurrentlyListed : (text) -> (_AzleResult_3) query;
+  unlistToken : (text) -> (_AzleResult);
+  updateListedToken : (text, ListedTokenPayload) -> (_AzleResult);
+}

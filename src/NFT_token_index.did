@@ -24,7 +24,7 @@ service : () -> {
   getListedToken : (text) -> (_AzleResult) query;
   getListedTokens : () -> (_AzleResult_1) query;
   getNFTPinataIPFSurl : (text) -> (_AzleResult_2) query;
-  getStatusListedTokenCurrentlyListed : (text) -> (_AzleResult_3) query;
+  isTokenCurrentlyListed : (text) -> (_AzleResult_3) query;
   unlistToken : (text) -> (_AzleResult);
   updateListedToken : (text, ListedTokenPayload) -> (_AzleResult);
 }

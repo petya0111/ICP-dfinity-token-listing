@@ -1,13 +1,12 @@
-// cannister code goes here
+// Import necessary modules
 import { $query, $update, Record, StableBTreeMap, Vec, match, Result, nat64, ic, Opt } from 'azle';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
  * This type represents a message that can be listed on a board.
- * This type provides details of listed NFT token
+ * This type provides details of a listed NFT token.
  */
-
- type Message = Record<{
+type Message = Record<{
     id: string;
     title: string;
     body: string;
@@ -16,70 +15,155 @@ import { v4 as uuidv4 } from 'uuid';
     updatedAt: Opt<nat64>;
 }>
 
+// Define the payload for creating a new Message
 type MessagePayload = Record<{
     title: string;
     body: string;
     attachmentURL: string;
 }>
 
+// Create storage for messages
 const messageStorage = new StableBTreeMap<string, Message>(0, 44, 1024);
 
-// 2.6 Creating the Get Messages Function
+// Function to get all messages
 $query;
 export function getMessages(): Result<Vec<Message>, string> {
-    return Result.Ok(messageStorage.values());
+    try {
+        return Result.Ok(messageStorage.values());
+    } catch (error) {
+        return Result.Err(`An error occurred when retrieving messages: ${error}`);
+    }
 }
 
-// 2.7 Creating the Get Message Function
+// Function to get a specific message by ID
 $query;
 export function getMessage(id: string): Result<Message, string> {
-    return match(messageStorage.get(id), {
-        Some: (message) => Result.Ok<Message, string>(message),
-        None: () => Result.Err<Message, string>(`a message with id=${id} not found`)
-    });
+    // Validate the provided ID
+    if (!id) {
+        return Result.Err<Message, string>('Invalid id');
+    }
+    try {
+        return match(messageStorage.get(id), {
+            Some: (message) => Result.Ok<Message, string>(message),
+            None: () => Result.Err<Message, string>(`An error occurred while retrieving the message with id=${id}`)
+        });
+    } catch (error) {
+        return Result.Err<Message, string>(`An error occurred while retrieving the message.`);
+    }
 }
 
-// 2.8 Creating the Add Message Function
+// Function to add a new message
 $update;
 export function addMessage(payload: MessagePayload): Result<Message, string> {
-    const message: Message = { id: uuidv4(), createdAt: ic.time(), updatedAt: Opt.None, ...payload };
-    messageStorage.insert(message.id, message);
+    // Validate the payload
+    if (!payload.title || !payload.body || !payload.attachmentURL) {
+        return Result.Err("Invalid payload");
+    }
+
+    // Create a new message object
+    const message: Message = {
+        id: uuidv4(),
+        createdAt: ic.time(),
+        updatedAt: Opt.None,
+        title: payload.title,
+        body: payload.body,
+        attachmentURL: payload.attachmentURL
+    };
+
+    // Check if a message with the same id already exists
+    if (messageStorage.get(message.id)) {
+        return Result.Err<Message, string>(`A message with the same id already exists.`);
+    }
+
+    try {
+        // Insert the message into the storage
+        messageStorage.insert(message.id, message);
+    } catch (error) {
+        return Result.Err<Message, string>(`An error occurred while inserting the message into storage.`);
+    }
+
+    // Return the result
     return Result.Ok(message);
 }
 
-// 2.9 Developing the Update Message Function
+// Function to update an existing message
 $update;
 export function updateMessage(id: string, payload: MessagePayload): Result<Message, string> {
+    // Validate the input parameters
+    if (typeof id !== 'string') {
+        return Result.Err<Message, string>('id must be a string');
+    }
+
+    if (typeof payload.title !== 'string') {
+        return Result.Err<Message, string>('payload.title must be a string');
+    }
+    if (typeof payload.body !== 'string') {
+        return Result.Err<Message, string>('payload.body must be a string');
+    }
+    if (typeof payload.attachmentURL !== 'string') {
+        return Result.Err<Message, string>('payload.attachmentURL must be a string');
+    }
+
     return match(messageStorage.get(id), {
         Some: (message) => {
-            const updatedMessage: Message = {...message, ...payload, updatedAt: Opt.Some(ic.time())};
-            messageStorage.insert(message.id, updatedMessage);
-            return Result.Ok<Message, string>(updatedMessage);
+            // Create an updated message object
+            const updatedMessage: Message = {
+                id: message.id,
+                title: payload.title,
+                body: payload.body,
+                attachmentURL: payload.attachmentURL,
+                createdAt: message.createdAt,
+                updatedAt: Opt.Some(ic.time())
+            };
+            try {
+                // Update the message in the storage
+                messageStorage.insert(message.id, updatedMessage);
+                return Result.Ok<Message, string>(updatedMessage);
+            } catch (error) {
+                return Result.Err<Message, string>(`An error occurred while inserting the updated message into storage.`);
+            }
+
         },
         None: () => Result.Err<Message, string>(`couldn't update a message with id=${id}. message not found`)
     });
 }
 
-// 2.10 Creating a Function to Delete a Message
+// Function to delete a message by ID
 $update;
 export function deleteMessage(id: string): Result<Message, string> {
-    return match(messageStorage.remove(id), {
-        Some: (deletedMessage) => Result.Ok<Message, string>(deletedMessage),
-        None: () => Result.Err<Message, string>(`couldn't delete a message with id=${id}. message not found.`)
-    });
+    // Suggestion 1: Consider adding type checking for the `id` parameter to ensure it's a string.
+    if (typeof id !== 'string') {
+        return Result.Err<Message, string>('id must be a string');
+    }
+
+    // Suggestion 2: Consider adding a check to see if the `id` is not empty or null before attempting to delete.
+    if (!id) {
+        return Result.Err<Message, string>('id is empty or null');
+    }
+
+    try {
+        // Suggestion 3: Consider wrapping the deletion operation in a try-catch block to handle any unexpected errors.
+        const deletedMessage = messageStorage.remove(id);
+        return match(deletedMessage, {
+            Some: (message) => Result.Ok<Message, string>(message),
+            None: () => Result.Err<Message, string>(`couldn't delete a message with id=${id}. message not found.`)
+        });
+    } catch (error) {
+        return Result.Err<Message, string>(`an unexpected error occurred while deleting the message with id=${id}.`);
+    }
 }
 
-// 2.11 Configuring the UUID Package
-// a workaround to make uuid package work with Azle
+// Configure the UUID Package
+// A workaround to make the uuid package work with Azle
 globalThis.crypto = {
     // @ts-ignore
-   getRandomValues: () => {
-       let array = new Uint8Array(32)
+    getRandomValues: () => {
+        let array = new Uint8Array(32);
 
-       for (let i = 0; i < array.length; i++) {
-           array[i] = Math.floor(Math.random() * 256)
-       }
+        for (let i = 0; i < array.length; i++) {
+            array[i] = Math.floor(Math.random() * 256);
+        }
 
-       return array
-   }
+        return array;
+    }
 }
